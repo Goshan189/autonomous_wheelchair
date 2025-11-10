@@ -1,0 +1,74 @@
+<launch>
+
+  <!-- Robot model -->
+  <arg name="model" default="$(find robot_3d_lidar)/urdf/robot_3d.xacro"/>
+
+  <!-- Map + World -->
+  <arg name="map_file"   default="$(find robot_3d_lidar)/maps/my_map.yaml"/>
+  <arg name="world_file" default="$(find robot_3d_lidar)/worlds/my_world.world"/>
+  <arg name="rviz_config" default="$(find robot_3d_lidar)/rviz/navigation_config.rviz"/>
+
+  <!-- Gazebo -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(arg world_file)"/>
+    <arg name="gui" value="true"/>
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+  </include>
+
+  <!-- URDF -->
+  <param name="robot_description" command="$(find xacro)/xacro $(arg model)" />
+  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model"
+        args="-param robot_description -urdf -model robot_3d" />
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+
+  <!-- 3D lidar → laserscan -->
+  <node pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" name="pc_to_scan">
+      <remap from="cloud_in" to="/velodyne_points"/>
+      <remap from="scan" to="/scan"/>
+      <rosparam>
+          target_frame: base_link
+          min_height: -0.10
+          max_height: 0.50
+          transform_tolerance: 0.01
+      </rosparam>
+  </node>
+
+  <!-- Localization -->
+  <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)"/>
+  <node pkg="amcl" type="amcl" name="amcl">
+    <param name="use_map_topic" value="true"/>
+    <param name="odom_model_type" value="diff"/>
+    <param name="min_particles" value="500"/>
+    <param name="max_particles" value="5000"/>
+    <param name="gui_publish_rate" value="10.0"/>
+    <param name="laser_max_range" value="25.0"/>
+    <param name="transform_tolerance" value="0.2"/>
+    <remap from="scan" to="/scan"/>
+  </node>
+
+  <!-- Navigation -->
+  <node pkg="move_base" type="move_base" name="move_base">
+
+    <param name="base_global_planner" value="global_planner/GlobalPlanner"/>
+    <param name="base_local_planner"  value="base_local_planner/TrajectoryPlannerROS"/>
+
+    <!-- Load config files -->
+    <rosparam file="$(find robot_3d_lidar)/config/navigation/costmap_common_params.yaml"    command="load" ns="global_costmap"/>
+    <rosparam file="$(find robot_3d_lidar)/config/navigation/costmap_common_params.yaml"    command="load" ns="local_costmap"/>
+    <rosparam file="$(find robot_3d_lidar)/config/navigation/global_costmap_params.yaml"    command="load"/>
+    <rosparam file="$(find robot_3d_lidar)/config/navigation/local_costmap_params.yaml"     command="load"/>
+    <rosparam file="$(find robot_3d_lidar)/config/navigation/global_planner_params.yaml"    command="load"/>
+    <rosparam file="$(find robot_3d_lidar)/config/navigation/base_local_planner_params.yaml" command="load"/>
+
+    <remap from="cmd_vel" to="/cmd_vel"/>
+    <remap from="scan" to="/scan"/>
+    <remap from="odom" to="/odom"/>
+
+  </node>
+
+  <!-- RViz -->
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(arg rviz_config)"/>
+
+</launch>
+
