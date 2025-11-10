@@ -54,12 +54,7 @@ Clone into your catkin workspace and build:
 
 ```bash
 cd ~/catkin_ws/src
-# Option 1: clone this repository
 git clone https://github.com/Goshan189/autonomous_wheelchair.git
-
-# Option 2: original upstream (replace YOUR_USERNAME)
-# git clone https://github.com/YOUR_USERNAME/robot_3d_lidar.git
-
 cd ~/catkin_ws
 catkin_make
 source devel/setup.bash
@@ -101,7 +96,3 @@ Open RViz to inspect:
 ## Contributing & Notes
 - This project is built for learning and experimentation. You can adapt the costmaps, controllers, and planners for different robots or environments.
 - If you test with a real VLP-16, ensure drivers and coordinate frames are configured correctly.
-
-License: (add your preferred license or leave as-is)
-
-Questions or improvements? Open an issue or submit a PR.
